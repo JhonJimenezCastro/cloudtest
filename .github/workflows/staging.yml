@@ -40,6 +40,18 @@ jobs:
             exit 1
           fi
 
+      - name: Create PR for main
+        if: github.event.pull_request.merged == true
+        run: |
+            gh auth login --with-token <<< "${{ secrets.TOKEN }}"
+            git fetch origin
+            git checkout main
+            git merge --no-ff staging
+            git push
+            gh pr create --base main --head staging --fill
+        env:
+          GH_TOKEN: ${{ secrets.TOKEN }}
+
       - name: Re-run last check
         if: github.event.pull_request.merged == true
         env:
