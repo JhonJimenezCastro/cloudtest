@@ -28,7 +28,6 @@ jobs:
           fetch-tags: true
 
       - name: Create PR for release
-        if: github.event.pull_request.merged == true
         run: |
             git config --global user.email "github-actions@github.com"
             git config --global user.name "GitHub Actions"
