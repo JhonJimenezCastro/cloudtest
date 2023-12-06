@@ -36,7 +36,7 @@ jobs:
             git push
             gh pr create --base release --head develop --fill
         env:
-          GH_TOKEN: ${{ secrets.TOKEN }}
+          TOKEN: ${{ secrets.TOKEN }}
 
       - name: Re-run last check
         if: github.event.pull_request.merged == true
