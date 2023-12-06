@@ -1,0 +1,78 @@
+name: CI-test
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - closed
+      - edited
+    branches:
+      - develop
+
+jobs:
+  develop:
+    runs-on: ubuntu-latest
+    env:
+      REMOTE: ${{ github.event.pull_request.head.repo.clone_url }}
+      ORIGEN: ${{ github.event.pull_request.head.ref }}
+      DESTINO: ${{ github.event.pull_request.base.ref }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Create PR for release
+        if: github.event.pull_request.merged == true
+        run: |
+            gh auth login --with-token <<< "${{ secrets.TOKEN }}"
+            git fetch origin
+            git checkout release
+            git merge --no-ff develop
+            git push
+            gh pr create --base release --head develop --fill
+        env:
+          GH_TOKEN: ${{ secrets.TOKEN }}
+
+      - name: Re-run last check
+        if: github.event.pull_request.merged == true
+        env:
+          OWNER: JhonJimenezCastro
+          REPO: testrepositor
+          ORIGEN: ${{ github.event.pull_request.head.ref }}
+          DESTINO: "release"
+          TOKEN: ${{ secrets.TOKEN }}
+        run: |  
+            pr_url=$(curl -s \
+              -H "Accept: application/vnd.github.v3+json" \
+              -H "Authorization: Bearer $TOKEN" \
+              https://api.github.com/repos/${OWNER}/${REPO}/pulls?state=open | \
+              jq -r '.[] | select(.head.ref=="'$ORIGEN'" and .base.ref=="'$DESTINO'") | .url')
+  
+            pr_sha=$(curl -s \
+              -H "Accept: application/vnd.github.v3+json" \
+              -H "Authorization: Bearer $TOKEN" \
+              $pr_url | jq -r '.head.sha')
+            echo "SHA $pr_sha"
+  
+            run_ids=$(curl -s \
+              -H "Accept: application/vnd.github.v3+json" \
+              -H "Authorization: Bearer $TOKEN" \
+              https://api.github.com/repos/${OWNER}/${REPO}/actions/runs \
+              | jq -r '.workflow_runs[] | select(.head_sha == "'$pr_sha'" ) | .id')
+  
+            for run_id in $run_ids
+            do
+              if [ -z "$run_id" ] || [ "$run_id" == "null" ]
+              then
+                echo "No se encontraron runs para el PR $pr_url"
+              else
+                rerun=$(curl -s \
+                  -X POST \
+                  -H "Accept: application/vnd.github.v3+json" \
+                  -H "Authorization: Bearer $TOKEN" \
+                  https://api.github.com/repos/${OWNER}/${REPO}/actions/runs/$run_id/rerun)
+              fi        
+            done
