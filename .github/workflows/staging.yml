@@ -43,6 +43,8 @@ jobs:
       - name: Create PR for main
         if: github.event.pull_request.merged == true
         run: |
+            git config --global user.email "github-actions@github.com"
+            git config --global user.name "GitHub Actions"
             gh auth login --with-token <<< "${{ secrets.TOKEN }}"
             git fetch origin
             git checkout main
