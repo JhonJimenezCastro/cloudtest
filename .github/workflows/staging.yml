@@ -45,7 +45,7 @@ jobs:
         run: |
             git config --global user.email "github-actions@github.com"
             git config --global user.name "GitHub Actions"
-            gh auth login --with-token <<< "${{ secrets.TOKEN }}"
+            gh auth login --with-token <<< $TOKEN
             git fetch origin
             git checkout main
             git merge --no-ff staging
