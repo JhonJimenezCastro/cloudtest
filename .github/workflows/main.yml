@@ -38,4 +38,3 @@ jobs:
             echo "Los cambios de la rama ${GITHUB_HEAD_REF} deben haber sido integrados previamente en la rama staging"
             exit 1
           fi
-
