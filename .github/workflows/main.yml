@@ -1,11 +1,16 @@
 name: CI-Main
 
 on:
+  push:
+    branches:
+      - main
+
   pull_request:
     types:
       - opened
       - synchronize
       - reopened
+      - closed
       - edited
     branches:
       - main
@@ -13,10 +18,6 @@ on:
 jobs:
   main:
     runs-on: ubuntu-latest
-    env:
-      REMOTE: ${{ github.event.pull_request.head.repo.clone_url }}
-      ORIGEN: ${{ github.event.pull_request.head.ref }}
-      DESTINO: ${{ github.event.pull_request.base.ref }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -28,14 +29,18 @@ jobs:
         env:
           REMOTE: ${{ github.event.pull_request.head.repo.clone_url }}
           ORIGEN: ${{ github.event.pull_request.head.ref }}
-          DESTINO: ${{ github.event.pull_request.base.ref }}
+          PREVIO_ENV: staging
         run: |
-          git fetch origin staging
-          LAST_COMMIT=$(git rev-parse origin/${GITHUB_HEAD_REF})
+          git fetch origin ${PREVIO_ENV}
+          LAST_COMMIT=$(git rev-parse origin/${ORIGEN})
     
-          COMMON_ANCESTOR=$(git merge-base origin/staging $LAST_COMMIT)
+          COMMON_ANCESTOR=$(git merge-base origin/${PREVIO_ENV} $LAST_COMMIT)
           if [ "$COMMON_ANCESTOR" != "$LAST_COMMIT" ]; then
-            echo "Los cambios de la rama ${GITHUB_HEAD_REF} deben haber sido integrados previamente en la rama staging"
+            echo "Los cambios de la rama ${ORIGEN} deben haber sido integrados previamente en la rama ${PREVIO_ENV}"
             exit 1
           fi
 
+      - name: Deploy
+        if: github.event_name == 'push'
+        run: |
+             echo "deploying rama base con el shelltool"

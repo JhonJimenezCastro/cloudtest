@@ -1,6 +1,10 @@
 name: CI-Release
 
 on:
+  push:
+    branches:
+      - release
+
   pull_request:
     types:
       - opened
@@ -25,68 +29,52 @@ jobs:
         env:
           REMOTE: ${{ github.event.pull_request.head.repo.clone_url }}
           ORIGEN: ${{ github.event.pull_request.head.ref }}
-          DESTINO: ${{ github.event.pull_request.base.ref }}
+          PREVIO_ENV: develop
         run: |
-          git fetch origin develop
-          LAST_COMMIT=$(git rev-parse origin/${GITHUB_HEAD_REF})
+          git fetch origin ${PREVIO_ENV}
+          LAST_COMMIT=$(git rev-parse origin/${ORIGEN})
     
-          COMMON_ANCESTOR=$(git merge-base origin/develop $LAST_COMMIT)
+          COMMON_ANCESTOR=$(git merge-base origin/${PREVIO_ENV} $LAST_COMMIT)
           if [ "$COMMON_ANCESTOR" != "$LAST_COMMIT" ]; then
-            echo "Los cambios de la rama ${GITHUB_HEAD_REF} deben haber sido integrados previamente en la rama develop"
+            echo "Los cambios de la rama ${ORIGEN} deben haber sido integrados previamente en la rama ${PREVIO_ENV}"
             exit 1
           fi
-
-      - name: Create PR for staging
-        if: github.event.pull_request.merged == true
-        run: |
-            git config --global user.email "github-actions@github.com"
-            git config --global user.name "GitHub Actions"
-            gh auth login --with-token <<< $TOKEN
-            git fetch origin
-            git checkout staging
-            git merge --no-ff release
-            git push
-            gh pr create --base staging --head release --fill
-        env:
-          TOKEN: ${{ secrets.TOKEN }}
-
-      - name: Re-run last check
+    
+      - name: Crear Auto-PR
         if: github.event.pull_request.merged == true
         env:
-          OWNER: JhonJimenezCastro
-          REPO: testrepositor
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_HEAD_REF: ${{ github.event.pull_request.head.ref }}
           ORIGEN: ${{ github.event.pull_request.head.ref }}
           DESTINO: "staging"
           TOKEN: ${{ secrets.TOKEN }}
-        run: |  
-            pr_url=$(curl -s \
-              -H "Accept: application/vnd.github.v3+json" \
-              -H "Authorization: Bearer $TOKEN" \
-              https://api.github.com/repos/${OWNER}/${REPO}/pulls?state=open | \
-              jq -r '.[] | select(.head.ref=="'$ORIGEN'" and .base.ref=="'$DESTINO'") | .url')
-  
-            pr_sha=$(curl -s \
-              -H "Accept: application/vnd.github.v3+json" \
-              -H "Authorization: Bearer $TOKEN" \
-              $pr_url | jq -r '.head.sha')
-            echo "SHA $pr_sha"
-  
-            run_ids=$(curl -s \
-              -H "Accept: application/vnd.github.v3+json" \
-              -H "Authorization: Bearer $TOKEN" \
-              https://api.github.com/repos/${OWNER}/${REPO}/actions/runs \
-              | jq -r '.workflow_runs[] | select(.head_sha == "'$pr_sha'" ) | .id')
-  
-            for run_id in $run_ids
-            do
-              if [ -z "$run_id" ] || [ "$run_id" == "null" ]
-              then
-                echo "No se encontraron runs para el PR $pr_url"
-              else
-                rerun=$(curl -s \
-                  -X POST \
-                  -H "Accept: application/vnd.github.v3+json" \
-                  -H "Authorization: Bearer $TOKEN" \
-                  https://api.github.com/repos/${OWNER}/${REPO}/actions/runs/$run_id/rerun)
-              fi        
-            done
+        run: |
+          set -e
+
+          # Script mejorado
+          echo -ne "\e[45m[INFO]\e[0m Auto-PR CREANDO PULL REQUEST para la rama staging \e[0m\n"
+
+          PR_RESPONSE=$(curl -s -u "${TOKEN}:" -X POST -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls" \
+              -d '{"title":"Auto-PR : '${ORIGEN}' to: '${DESTINO}'","body":"proceso generado por gitbot","head":"'${ORIGEN}'","base":"'${DESTINO}'"}')
+
+          if ! echo "$PR_RESPONSE" | jq empty &> /dev/null; then
+              echo -ne "\e[41m[ERROR]\e[0m La respuesta de GitHub no es un JSON válido.\e[0m\n"
+              exit 1
+          fi
+
+          sleep 5s
+
+          PR_NUMBER=$(echo "$PR_RESPONSE" | jq -r '.number')
+
+          if [[ -z "$PR_NUMBER" ]]; then
+              echo -ne "\e[41m[ERROR]\e[0m Error al crear PR para la rama ${DESTINO}\e[0m\n"
+              exit 1
+          fi
+
+          echo -ne "\e[42m[SUCCESS]\e[0m Pull Request creado exitosamente: ${PR_NUMBER}\e[0m\n"
+
+      - name: Deploy
+        if: github.event_name == 'push'
+        run: |
+             echo "deploying rama base con el shelltool"
