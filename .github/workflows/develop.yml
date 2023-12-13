@@ -19,6 +19,7 @@ jobs:
   develop:
     runs-on: ubuntu-latest
     steps:
+
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
@@ -27,6 +28,11 @@ jobs:
       - name: Run Tests
         run: |
               echo "run snyk sonar etc con el shelltool"
+
+      - name: Deploy
+        if: github.event_name == 'push'
+        run: |
+            echo "deploying rama base con el shelltool"
       
       - name: Crear Auto-PR
         if: github.event.pull_request.merged == true
@@ -80,10 +86,7 @@ jobs:
           echo -ne "\e[42m[SUCCESS]\e[0m Pull Request #${PR_NUMBER} creado exitosamente \e[0m\n"
           echo -ne "\e[42m[SUCCESS]\e[0m $PR_URL \e[0m\n"
 
-        - name: Deploy
-          if: github.event_name == 'push'
-          run: |
-              echo "deploying rama base con el shelltool"
+
 
 
 
