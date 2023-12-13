@@ -24,6 +24,10 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
+      - name: Run Tests
+        run: |
+              echo "run snyk sonar etc con el shelltool"
+
       - name: Validar que el PR ya pasó por ambiente previo
         if: ${{ github.event_name == 'pull_request' }}
         env:
