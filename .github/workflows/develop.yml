@@ -36,7 +36,7 @@ jobs:
       - name: Crear Auto-PR
         if: github.event.pull_request.merged == true
         env:
-          GITHUB_REPOSITORY: ${{ github.ref}}
+          GITHUB_REPOSITORY: ${{ github.repository }}
           OWNER: ${{ github.actor }}
           ORIGEN: ${{ github.event.pull_request.head.ref }}
           DESTINO: "release"
@@ -47,7 +47,7 @@ jobs:
           PR_RESPONSE=$(curl -s -X POST \
             -H "Accept: application/vnd.github.v3+json" \
             -H "Authorization: token $TOKEN" \
-            https://api.github.com/repos/$OWNER/$GITHUB_REPOSITORY/pulls \
+            https://api.github.com/repos/$GITHUB_REPOSITORY/pulls \
             -d '{
               "title":"Auto-PR: '${ORIGEN}' -> '${DESTINO}'",
               "body":"proceso generado por gitbot",
@@ -64,7 +64,7 @@ jobs:
             if [[ "$ERROR_MESSAGE" == *"A pull request already exists for"* ]]; then
 
               EXISTING_PR_URL=$(curl -s -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $TOKEN" \
-                "https://api.github.com/repos/$OWNER/$GITHUB_REPOSITORY/pulls?state=open" | jq -r ".[] 
+                "https://api.github.com/repos/$GITHUB_REPOSITORY/pulls?state=open" | jq -r ".[] 
                 | select(.head.ref == \"$ORIGEN\" and .base.ref == \"$DESTINO\") 
                 | .html_url")
 
