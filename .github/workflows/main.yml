@@ -28,6 +28,11 @@ jobs:
         run: |
               echo "run snyk sonar etc con el shelltool"
 
+      - name: Deploy
+        if: github.event_name == 'push'
+        run: |
+             echo "deploying rama base con el shelltool"
+
       - name: Validar que el PR ya pasó por ambiente previo
         if: ${{ github.event_name == 'pull_request' }}
         env:
@@ -44,7 +49,3 @@ jobs:
             exit 1
           fi
 
-      - name: Deploy
-        if: github.event_name == 'push'
-        run: |
-             echo "deploying rama base con el shelltool"
