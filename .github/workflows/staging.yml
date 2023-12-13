@@ -86,6 +86,8 @@ jobs:
                 | .html_url")
 
                 echo -ne "\e[41m[ERROR]\e[0m Ya existe un PR para $ORIGEN -> $DESTINO: $EXISTING_PR_URL\e[0m\n"
+            else
+              echo -ne "\e[41m[ERROR]\e[0m $ERROR_MESSAGE \e[0m\n"
             fi
             exit 1
           fi
