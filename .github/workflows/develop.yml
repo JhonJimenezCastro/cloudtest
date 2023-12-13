@@ -72,7 +72,7 @@ jobs:
             fi
             exit 1
           fi
-          echo "$PR_RESPONSE"
+
           PR_NUMBER=$(echo "$PR_RESPONSE" | jq -r '.number')
           PR_URL=$(echo "$PR_RESPONSE" | jq -r '.html_url')
 
