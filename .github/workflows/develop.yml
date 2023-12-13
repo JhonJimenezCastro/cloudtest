@@ -19,7 +19,6 @@ jobs:
   develop:
     runs-on: ubuntu-latest
     steps:
-
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
@@ -85,10 +84,3 @@ jobs:
 
           echo -ne "\e[42m[SUCCESS]\e[0m Pull Request #${PR_NUMBER} creado exitosamente \e[0m\n"
           echo -ne "\e[42m[SUCCESS]\e[0m $PR_URL \e[0m\n"
-
-
-
-
-
-          
-
