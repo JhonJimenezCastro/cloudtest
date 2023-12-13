@@ -71,6 +71,7 @@ jobs:
               "base": "'$DESTINO'"
             }'
           )
+          echo "$PR_RESPONSE"
 
           sleep 3s
 
